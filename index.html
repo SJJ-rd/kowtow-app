@@ -2,14 +2,19 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上電子木魚 - 圓滿儀軌版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+    <title>線上電子木魚 - 早晚課修持版</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
+        <div style="display: flex; justify-content: space-between; padding: 0 10px; margin-bottom: -5px;">
+            <p id="streak-counter" style="font-size: 0.85rem; color: #4CAF50; font-weight: bold; margin: 0;">連續修行：0 天</p>
+            <p id="lifetime-counter" style="font-size: 0.85rem; color: #bbb; margin: 0;">總叩首：0</p>
+        </div>
+        
         <h1 id="counter">叩首：0</h1>
-        <p id="status-text">就緒，請按開始修行</p>
+        <p id="status-text">音訊載入中...</p>
 
         <div class="control-panel">
             <div class="input-group">
@@ -31,9 +36,10 @@
             <hr style="border: 0.5px solid #444; margin: 15px 0;">
             
             <div class="test-group">
-                <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">音訊手動測試：</p>
-                <button id="test-muyu-btn" class="test-btn">測試木魚聲</button>
-                <button id="test-qing-btn" class="test-btn">測試引磬聲</button>
+                <p style="font-size: 11px; color: #888; margin-bottom: 8px;">系統功能：</p>
+                <button id="reminder-google-btn" class="test-btn" style="background: #2196F3; font-size: 11px;">Google 提醒</button>
+                <button id="reminder-apple-btn" class="test-btn" style="background: #ff9500; font-size: 11px;">Apple 提醒</button>
+                <button id="reset-lifetime-btn" class="test-btn" style="background: #a11; font-size: 11px;">重設紀錄</button>
             </div>
         </div>
 
