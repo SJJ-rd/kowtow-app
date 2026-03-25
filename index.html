@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上電子木魚 - 圓滿儀軌版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="counter">叩首：0</h1>
+        <p id="status-text">就緒，請按開始修行</p>
+
+        <div class="control-panel">
+            <div class="input-group">
+                <label>目標次數：</label>
+                <input type="number" id="target-input" value="108" min="1">
+            </div>
+            
+            <div class="input-group">
+                <label>敲擊速度：</label>
+                <input type="number" id="speed-input" value="60" min="1">
+                <span> BPM</span>
+            </div>
+
+            <div class="button-group">
+                <button id="start-btn">開始修行</button>
+                <button id="stop-btn">停止</button>
+            </div>
+
+            <hr style="border: 0.5px solid #444; margin: 15px 0;">
+            
+            <div class="test-group">
+                <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">音訊手動測試：</p>
+                <button id="test-muyu-btn" class="test-btn">測試木魚聲</button>
+                <button id="test-qing-btn" class="test-btn">測試引磬聲</button>
+            </div>
+        </div>
+
+        <div id="muyu-btn">
+            <img src="muyu_image.png" alt="木魚" id="muyu-img">
+            <span id="floating-text">叩首 +1</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+
+    background-image: url('kowtow_background.png');
+    background-size: cover;          
+    background-position: center;     
+    background-repeat: no-repeat;    
+    background-attachment: fixed;    
+    background-color: rgba(0, 0, 0, 0.5); 
+    background-blend-mode: overlay;     
+
+    color: #e0e0e0;
+    font-family: "Microsoft JhengHei", sans-serif;
+    overflow: hidden;
+
+    /* 🌟 新增：防止手機長按選取文字 */
+    user-select: none;
+    -webkit-user-select: none; 
+}
+
+/* 略... 中間保持不變 ... */
+
+button {
+    padding: 8px 16px;
+    margin: 5px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    /* 🌟 新增：告訴手機這個按鈕只用來點擊，不要觸發雙擊放大 */
+    touch-action: manipulation;
+}
+
+/* 略... 中間保持不變 ... */
+
+#muyu-btn {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    transition: transform 0.05s;
+    /* 🌟 新增：告訴手機木魚圖片只用來點擊，不要觸發雙擊放大 */
+    touch-action: manipulation;
+    /* 去除點擊時的半透明藍色反白 (手機端常見) */
+    -webkit-tap-highlight-color: transparent; 
+}
+
+#muyu-btn:active { transform: scale(0.95); }
+#muyu-img { width: 180px; height: auto; }
