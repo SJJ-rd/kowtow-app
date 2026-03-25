@@ -10,86 +10,71 @@ const STORAGE_KEYS = {
     SPEED: 'kowtow_setting_speed'
 };
 
-// --- Web Audio 引擎 (零延遲關鍵) ---
-let audioCtx = null;
-let muyuBuffer = null;
-let qingBuffer = null;
+// --- Web Audio 引擎 (解決沒聲音與延遲的終極方案) ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = new AudioContext(); 
+let muyuBuffer = null, qingBuffer = null;
 
 const counterDisplay = document.getElementById('counter'),
       statusText = document.getElementById('status-text'),
       startBtn = document.getElementById('start-btn'),
-      stopBtn = document.getElementById('stop-btn'),
-      targetInput = document.getElementById('target-input'),
-      speedInput = document.getElementById('speed-input'),
       muyuBtn = document.getElementById('muyu-btn'),
-      floatingText = document.getElementById('floating-text'),
-      resetBtn = document.getElementById('reset-lifetime-btn');
+      floatingText = document.getElementById('floating-text');
 
-// 🌟 初始化音訊引擎
-function initAudioEngine() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+// 🌟 強制喚醒瀏覽器音訊 (解鎖 Chrome/Safari 關鍵)
+async function unlockAudio() {
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        await audioCtx.resume();
     }
 }
 
-// 🌟 下載並解碼音訊
-async function loadSound(url) {
-    const resp = await fetch(url);
-    const arrayBuf = await resp.arrayBuffer();
-    return await audioCtx.decodeAudioData(arrayBuf);
+// 載入 25KB 小音檔
+async function loadBuffer(url) {
+    const res = await fetch(url);
+    const arrayBuffer = await res.arrayBuffer();
+    return await audioCtx.decodeAudioData(arrayBuffer);
 }
 
-async function preloadResources() {
+// 初始化資源
+async function init() {
     try {
-        statusText.innerText = "接引音訊中 (3.7MB 較大)...";
-        // 為了啟動引擎，我們在第一次載入前不初始化，等按鈕觸發
-        // 但為了流暢度，我們還是先背景下載
+        statusText.innerText = "淨化道場中...";
         const [mBuf, qBuf] = await Promise.all([
-            fetch('muyu.mp3').then(r => r.arrayBuffer()),
-            fetch('bells.mp3').then(r => r.arrayBuffer())
+            loadBuffer('muyu.mp3'),
+            loadBuffer('bells.mp3')
         ]);
+        muyuBuffer = mBuf;
+        qingBuffer = qBuf;
         
-        // 暫存資料，等使用者點擊後再解碼（解決 Chrome/Safari 鎖定）
-        window.tempM = mBuf;
-        window.tempQ = qBuf;
-
         startBtn.disabled = false;
         startBtn.innerText = "開始修行";
-        statusText.innerText = "道場已就緒，請點擊開始";
+        statusText.innerText = "道場已就緒";
     } catch (e) {
-        statusText.innerText = "載入失敗，請檢查網路";
+        statusText.innerText = "載入失敗，請確認檔案在根目錄";
     }
 }
 
-// 🌟 播放函數 (Web Audio 版：零延遲)
-function playEffect(buffer) {
-    if (!buffer || !audioCtx) return;
-    initAudioEngine();
+// 零延遲播放函數
+function playSound(buffer, vol = 1.0) {
+    if (!buffer) return;
     const source = audioCtx.createBufferSource();
+    const gainNode = audioCtx.createGain();
     source.buffer = buffer;
-    source.connect(audioCtx.destination);
+    gainNode.gain.value = vol;
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
     source.start(0);
 }
 
-function playWait(buffer) {
-    return new Promise(resolve => {
-        playEffect(buffer);
-        setTimeout(resolve, 1200);
-    });
-}
-
-// --- 紀錄儲存 ---
+// 儲存邏輯
 const Storage = {
     load: function() {
         lifetimeCount = parseInt(localStorage.getItem(STORAGE_KEYS.LIFETIME)) || 0;
         streakCount = parseInt(localStorage.getItem(STORAGE_KEYS.STREAK)) || 0;
         lastPracticeDate = localStorage.getItem(STORAGE_KEYS.LAST_DATE) || "";
         this.updateUI();
-        if (localStorage.getItem(STORAGE_KEYS.TARGET)) targetInput.value = localStorage.getItem(STORAGE_KEYS.TARGET);
-        if (localStorage.getItem(STORAGE_KEYS.SPEED)) speedInput.value = localStorage.getItem(STORAGE_KEYS.SPEED);
+        if (localStorage.getItem(STORAGE_KEYS.TARGET)) document.getElementById('target-input').value = localStorage.getItem(STORAGE_KEYS.TARGET);
+        if (localStorage.getItem(STORAGE_KEYS.SPEED)) document.getElementById('speed-input').value = localStorage.getItem(STORAGE_KEYS.SPEED);
     },
     save: function() {
         const today = new Date().toDateString();
@@ -106,75 +91,91 @@ const Storage = {
     }
 };
 
-// --- 修行邏輯 ---
-async function perform() {
+// 修行自動敲擊邏輯
+async function performTap() {
     if (!isRunning || isPausing) return;
     count++; Storage.save();
     counterDisplay.innerText = `叩首：${count}`;
-    playEffect(muyuBuffer);
+    playSound(muyuBuffer);
     
+    // 動畫
     floatingText.classList.remove('animate-text');
     void floatingText.offsetWidth;
     floatingText.classList.add('animate-text');
 
-    if (count >= parseInt(targetInput.value)) {
+    const target = parseInt(document.getElementById('target-input').value);
+    if (count >= target) {
         stopPractice("目標達成，功德圓滿");
         return;
     }
 
     if (count % 100 === 0) {
         isPausing = true; clearInterval(autoInterval);
-        statusText.innerText = `已滿 ${count} 下，鳴磬中...`;
-        await playWait(qingBuffer);
-        if (isRunning) {
-            statusText.innerText = "修行進行中...";
-            autoInterval = setInterval(perform, 60000 / parseInt(speedInput.value));
-            isPausing = false;
-        }
+        statusText.innerText = `已滿 ${count} 下，鳴磬迴向...`;
+        playSound(qingBuffer);
+        setTimeout(() => {
+            if (isRunning) {
+                statusText.innerText = "修行進行中...";
+                autoInterval = setInterval(performTap, 60000 / parseInt(document.getElementById('speed-input').value));
+                isPausing = false;
+            }
+        }, 1500);
     }
 }
 
-async function startPractice() {
-    initAudioEngine();
-    
-    // 如果還沒解碼，現在解碼 (使用者觸發的一瞬間)
-    if (!muyuBuffer) {
-        statusText.innerText = "正在解碼大音檔...";
-        muyuBuffer = await audioCtx.decodeAudioData(window.tempM);
-        qingBuffer = await audioCtx.decodeAudioData(window.tempQ);
-    }
-
+// 開始按鈕
+startBtn.onclick = async () => {
+    await unlockAudio(); // 🌟 解鎖 Chrome
     count = 0; isRunning = true; startBtn.disabled = true;
-    statusText.innerText = "鳴磬三聲，請靜心...";
+    statusText.innerText = "鳴磬三聲，靜心...";
+    
     for (let i = 0; i < 3; i++) {
         if (!isRunning) return;
-        await playWait(qingBuffer);
+        playSound(qingBuffer);
+        await new Promise(r => setTimeout(r, 1200));
     }
+    
     if (isRunning) {
         statusText.innerText = "修行進行中...";
-        autoInterval = setInterval(perform, 60000 / parseInt(speedInput.value));
+        autoInterval = setInterval(performTap, 60000 / parseInt(document.getElementById('speed-input').value));
     }
-}
+};
+
+// 停止按鈕
+document.getElementById('stop-btn').onclick = () => stopPractice();
 
 function stopPractice(msg = "已停止修行") {
     isRunning = false; isPausing = false;
     clearInterval(autoInterval);
     startBtn.disabled = false;
+    startBtn.innerText = "重新開始";
     statusText.innerText = msg;
-    if(msg.includes("圓滿")) playEffect(qingBuffer);
+    if (msg.includes("圓滿")) playSound(qingBuffer, 1.0);
 }
 
-// --- 事件綁定 ---
-startBtn.onclick = startPractice;
-stopBtn.onclick = () => stopPractice();
-resetBtn.onclick = () => {
-    if (confirm("確定要重設紀錄嗎？")) {
-        localStorage.clear();
-        location.reload();
+// 🌟 木魚手動敲擊 (同樣具備喚醒音訊功能)
+muyuBtn.onclick = async () => {
+    await unlockAudio(); 
+    if (!isRunning && !isPausing) {
+        count++; Storage.save();
+        counterDisplay.innerText = `叩首：${count}`;
+        playSound(muyuBuffer);
+        floatingText.classList.remove('animate-text');
+        void floatingText.offsetWidth;
+        floatingText.classList.add('animate-text');
+        if (count % 100 === 0) playSound(qingBuffer, 0.7);
     }
 };
 
-// 🌟 Apple 提醒：強化時區格式 (解決不重複問題)
+// 🌟 重設紀錄：強制清空並刷新的最穩方式
+document.getElementById('reset-lifetime-btn').onclick = () => {
+    if (confirm("確定要將「總叩首」與「連續打卡」紀錄永久歸零嗎？")) {
+        localStorage.clear();
+        location.reload(); 
+    }
+};
+
+// 🌟 Apple 提醒：修正為 iPhone 100% 識別的每日重複格式
 document.getElementById('reminder-apple-btn').onclick = () => {
     const url = window.location.href;
     const now = new Date();
@@ -186,14 +187,14 @@ document.getElementById('reminder-apple-btn').onclick = () => {
         "VERSION:2.0",
         "BEGIN:VEVENT",
         "SUMMARY:早課修行 (叩首)",
-        `DTSTART;TZID=Asia/Taipei:${d}T060000`,
-        "RRULE:FREQ=DAILY",
+        `DTSTART:${d}T060000`,
+        "RRULE:FREQ=DAILY", // 每日重複
         `DESCRIPTION:進入道場：${url}`,
         "END:VEVENT",
         "BEGIN:VEVENT",
         "SUMMARY:晚課修行 (叩首)",
-        `DTSTART;TZID=Asia/Taipei:${d}T170000`,
-        "RRULE:FREQ=DAILY",
+        `DTSTART:${d}T170000`,
+        "RRULE:FREQ=DAILY", // 每日重複
         `DESCRIPTION:進入道場：${url}`,
         "END:VEVENT",
         "END:VCALENDAR"
@@ -201,34 +202,19 @@ document.getElementById('reminder-apple-btn').onclick = () => {
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'}));
-    link.download = 'kowtow.ics';
+    link.download = 'kowtow_reminder.ics';
     link.click();
 };
 
 document.getElementById('reminder-google-btn').onclick = () => {
-    const isM = confirm("確定：06:00 / 取消：17:00");
+    const isM = confirm("選擇提醒時段：\n【確定】早上 06:00\n【取消】下午 17:00");
     const t = new Date(); t.setHours(isM ? 6 : 17, 0, 0, 0);
     const fmt = d => d.toISOString().replace(/-|:|\.\d+/g, "");
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(isM?"早課":"晚課")}&dates=${fmt(t)}/${fmt(new Date(t.getTime()+900000))}&recur=RRULE:FREQ=DAILY`, '_blank');
 };
 
-muyuBtn.onclick = async () => {
-    initAudioEngine();
-    // 如果手動點擊時還沒解碼
-    if (!muyuBuffer && window.tempM) {
-        muyuBuffer = await audioCtx.decodeAudioData(window.tempM);
-        qingBuffer = await audioCtx.decodeAudioData(window.tempQ);
-    }
-    if (!isRunning && !isPausing) {
-        count++; Storage.save();
-        counterDisplay.innerText = `叩首：${count}`;
-        playEffect(muyuBuffer);
-        floatingText.classList.remove('animate-text'); void floatingText.offsetWidth; floatingText.classList.add('animate-text');
-        if (count % 100 === 0) playEffect(qingBuffer);
-    }
-};
-
+// 網頁開啟
 window.onload = () => {
     Storage.load();
-    preloadResources();
+    init();
 };
