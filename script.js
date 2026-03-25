@@ -47,27 +47,29 @@ const speedInput = document.getElementById('speed-input');
 const muyuBtn = document.getElementById('muyu-btn');
 const floatingText = document.getElementById('floating-text');
 
-// 🌟 雲端加速載入：直接從雲端讀取，速度最快
+// 🌟 修正路徑載入邏輯
 async function loadAudioFile(url, name) {
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error(`找不到 ${name} 檔案`);
         const arrayBuffer = await response.arrayBuffer();
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
         return decodedData;
     } catch (e) {
-        console.error(`${name} 失敗`, e);
+        statusText.innerText = `錯誤: ${e.message}`;
+        console.error(e);
         return null;
     }
 }
 
 async function initAllAudio() {
     statusText.innerText = "淨心準備中...";
-    // 使用 Cloud 加速源，解決 GitHub 載入慢的問題
-    const muyuPromise = loadAudioFile('./muyu.mp3', '木魚');
-    const qingPromise = loadAudioFile('./bells.mp3', '引磬');
+    // 使用相對路徑，確保在 GitHub Pages 運作正常
+    const muyuPromise = loadAudioFile('muyu.mp3', 'muyu.mp3');
+    const qingPromise = loadAudioFile('bells.mp3', 'bells.mp3');
 
-    muyuPromise.then(buf => { muyuBuffer = buf; checkReady(); });
-    qingPromise.then(buf => { qingBuffer = buf; checkReady(); });
+    muyuPromise.then(buf => { if(buf) muyuBuffer = buf; checkReady(); });
+    qingPromise.then(buf => { if(buf) qingBuffer = buf; checkReady(); });
 }
 
 function checkReady() {
@@ -107,8 +109,8 @@ const StorageManager = {
         this.updateDisplays();
     },
     updateDisplays: function() {
-        lifetimeCounterDisplay.innerText = `總叩首：${lifetimeCount.toLocaleString()}`;
-        streakCounterDisplay.innerText = `連續修行：${streakCount} 天`;
+        if(lifetimeCounterDisplay) lifetimeCounterDisplay.innerText = `總叩首：${lifetimeCount.toLocaleString()}`;
+        if(streakCounterDisplay) streakCounterDisplay.innerText = `連續修行：${streakCount} 天`;
     }
 };
 
@@ -180,55 +182,23 @@ async function finishPractice() {
     startBtn.disabled = false; statusText.innerText = "儀軌圓滿！";
 }
 
-// 🌟 Apple 提醒：極簡格式，保證「每天重複」且「無限期」
-document.getElementById('reminder-apple-btn').addEventListener('click', () => {
+// 提醒功能
+document.getElementById('reminder-apple-btn').onclick = () => {
     const url = window.location.href;
-    const now = new Date();
-    const pad = n => n < 10 ? '0' + n : n;
-    const d = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-
-    const ics = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "BEGIN:VEVENT",
-        `DTSTART:${d}T060000`,
-        `DTEND:${d}T061500`,
-        "RRULE:FREQ=DAILY", 
-        "SUMMARY:早課修行：叩首",
-        `DESCRIPTION:進入：${url}`,
-        "BEGIN:VALARM",
-        "TRIGGER:-PT0M",
-        "ACTION:DISPLAY",
-        "END:VALARM",
-        "END:VEVENT",
-        "BEGIN:VEVENT",
-        `DTSTART:${d}T170000`,
-        `DTEND:${d}T171500`,
-        "RRULE:FREQ=DAILY",
-        "SUMMARY:晚課修行：叩首",
-        `DESCRIPTION:進入：${url}`,
-        "BEGIN:VALARM",
-        "TRIGGER:-PT0M",
-        "ACTION:DISPLAY",
-        "END:VALARM",
-        "END:VEVENT",
-        "END:VCALENDAR"
-    ].join("\r\n");
-
-    const blob = new Blob([ics], {type:'text/calendar'});
+    const d = new Date().toISOString().replace(/-|:|\.\d+/g, "").split("T")[0];
+    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${d}T060000\nDTEND:${d}T061500\nRRULE:FREQ=DAILY\nSUMMARY:早課修行\nDESCRIPTION:${url}\nEND:VEVENT\nBEGIN:VEVENT\nDTSTART:${d}T170000\nDTEND:${d}T171500\nRRULE:FREQ=DAILY\nSUMMARY:晚課修行\nDESCRIPTION:${url}\nEND:VEVENT\nEND:VCALENDAR`.replace(/\n/g, "\r\n");
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'}));
     link.download = 'kowtow.ics';
     link.click();
-});
+};
 
-document.getElementById('reminder-google-btn').addEventListener('click', () => {
+document.getElementById('reminder-google-btn').onclick = () => {
     const isM = confirm("確定：早上 06:00\n取消：下午 17:00");
     const t = new Date(); t.setHours(isM ? 6 : 17, 0, 0, 0);
-    const pad = n => n < 10 ? '0' + n : n;
-    const fmt = d => `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+    const fmt = d => d.toISOString().replace(/-|:|\.\d+/g, "");
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(isM?"早課":"晚課")}&dates=${fmt(t)}/${fmt(new Date(t.getTime()+900000))}&recur=RRULE:FREQ=DAILY`, '_blank');
-});
+};
 
 document.getElementById('reset-lifetime-btn').onclick = () => { if(confirm("重設？")) {localStorage.clear(); location.reload();} };
 startBtn.onclick = startPractice;
