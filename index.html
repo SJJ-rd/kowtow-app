@@ -3,32 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>線上電子木魚 - 終極穩定版</title>
+    <title>線上電子木魚 - 默念修行版</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 強化解鎖層：確保它是最上層且背景明顯 */
-        #audio-unlock-overlay {
+        #force-start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 99999; background: rgba(0,0,0,0.85); display: flex;
-            justify-content: center; align-items: center; color: #ffcf40;
-            cursor: pointer; transition: opacity 0.5s;
+            background: rgba(0,0,0,0.85); z-index: 99999; display: flex;
+            justify-content: center; align-items: center; cursor: pointer;
         }
-        .unlock-box {
-            border: 2px solid #ffcf40; padding: 30px; border-radius: 15px;
-            text-align: center; animation: pulse 2s infinite;
+        .unlock-btn {
+            border: 2px solid #ffcf40; color: #ffcf40; padding: 25px 40px;
+            border-radius: 50px; font-size: 18px; text-align: center;
+            animation: pulse 2s infinite;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
-    <div id="audio-unlock-overlay">
-        <div class="unlock-box">
-            <p style="font-size: 40px; margin: 0;">🙏</p>
-            <p style="font-size: 18px; font-weight: bold;">點擊螢幕<br>進入道場修行</p>
+    <div id="force-start-overlay">
+        <div class="unlock-btn">
+            🙏<br>點此進入道場修行<br>
+            <span style="font-size: 12px; opacity: 0.8;">(請確保側邊靜音鍵已關閉)</span>
         </div>
     </div>
 
@@ -38,37 +33,42 @@
             <p id="lifetime-counter" style="font-size: 0.85rem; color: #bbb; margin: 0;">總叩首：0</p>
         </div>
         
-        <h1 id="counter">叩首：0</h1>
-        <p id="status-text">道場準備中...</p>
+        <h1 id="counter">進度：0</h1>
+        <p id="status-text">道場加載中...</p>
 
         <div class="control-panel">
             <div class="input-group">
-                <label>目標次數：</label>
-                <input type="number" id="target-input" value="108" min="1">
+                <label>修行模式：</label>
+                <select id="mode-select" style="background: #333; color: white; border: 1px solid #555; padding: 2px 5px;">
+                    <option value="standard">標準模式 (1下計1)</option>
+                    <option value="recitation">默念模式 (5下計1)</option>
+                </select>
             </div>
+
             <div class="input-group">
-                <label>敲擊速度：</label>
-                <input type="number" id="speed-input" value="60" min="1">
-                <span> BPM</span>
+                <label>目標：</label>
+                <input type="number" id="target-input" value="108">
+                <label> 速度：</label>
+                <input type="number" id="speed-input" value="60">
             </div>
+            
             <div class="button-group">
-                <button id="start-btn" disabled>載入音訊中...</button>
+                <button id="start-btn" disabled>開始修行</button>
                 <button id="stop-btn">停止</button>
             </div>
-            <hr style="border: 0.5px solid #444; margin: 15px 0;">
+            <hr style="border: 0.5px solid #444; margin: 12px 0;">
             <div class="test-group">
-                <button id="reminder-google-btn" class="test-btn" style="background: #2196F3;">Google 提醒</button>
-                <button id="reminder-apple-btn" class="test-btn" style="background: #ff9500;">Apple 提醒</button>
-                <button id="reset-lifetime-btn" class="test-btn" style="background: #a11;">重設紀錄</button>
+                <button id="rem-google" class="test-btn" style="background: #2196F3; font-size: 11px;">Google 提醒</button>
+                <button id="rem-apple" class="test-btn" style="background: #ff9500; font-size: 11px;">Apple 提醒</button>
+                <button id="reset-btn" class="test-btn" style="background: #a11; font-size: 11px;">重設紀錄</button>
             </div>
         </div>
 
-        <div id="muyu-btn" style="-webkit-tap-highlight-color: transparent; cursor: pointer;">
+        <div id="muyu-btn" style="cursor: pointer; -webkit-tap-highlight-color: transparent;">
             <img src="muyu_image.png" alt="木魚" id="muyu-img">
             <span id="floating-text">叩首 +1</span>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
