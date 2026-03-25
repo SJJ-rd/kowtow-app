@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>線上電子木魚 - 圓滿修持版</title>
+    <title>線上電子木魚 - 修行定課版</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,41 +14,35 @@
         </div>
         
         <h1 id="counter">叩首：0</h1>
-        <p id="status-text">道場準備中...</p>
+        <p id="status-text">初始化中...</p>
 
         <div class="control-panel">
             <div class="input-group">
                 <label>目標次數：</label>
                 <input type="number" id="target-input" value="108" min="1">
             </div>
-            
             <div class="input-group">
                 <label>敲擊速度：</label>
                 <input type="number" id="speed-input" value="60" min="1">
                 <span> BPM</span>
             </div>
-
             <div class="button-group">
-                <button id="start-btn">開始修行</button>
+                <button id="start-btn" disabled>載入中...</button>
                 <button id="stop-btn">停止</button>
             </div>
-
             <hr style="border: 0.5px solid #444; margin: 15px 0;">
-            
             <div class="test-group">
-                <p style="font-size: 11px; color: #888; margin-bottom: 8px;">系統功能：</p>
                 <button id="reminder-google-btn" class="test-btn" style="background: #2196F3;">Google 提醒</button>
                 <button id="reminder-apple-btn" class="test-btn" style="background: #ff9500;">Apple 提醒</button>
                 <button id="reset-lifetime-btn" class="test-btn" style="background: #a11;">重設紀錄</button>
             </div>
         </div>
 
-        <div id="muyu-btn">
+        <div id="muyu-btn" style="cursor: pointer;">
             <img src="muyu_image.png" alt="木魚" id="muyu-img">
             <span id="floating-text">叩首 +1</span>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
