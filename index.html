@@ -5,8 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
     <title>線上電子木魚 - 圓滿修持版</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 增加一個全螢幕透明解鎖層，確保手機版點擊必中 */
+        #audio-unlock-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; background: transparent; display: flex;
+            justify-content: center; align-items: center; color: white;
+            background: rgba(0,0,0,0.4); text-align: center; cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+    <div id="audio-unlock-overlay">
+        <div>
+            <p style="font-size: 20px;">🙏</p>
+            <p>請點擊螢幕任意處<br>進入道場修行</p>
+        </div>
+    </div>
+
     <div class="container">
         <div style="display: flex; justify-content: space-between; padding: 0 10px; margin-bottom: -5px;">
             <p id="streak-counter" style="font-size: 0.85rem; color: #4CAF50; font-weight: bold; margin: 0;">連續修行：0 天</p>
@@ -14,7 +30,7 @@
         </div>
         
         <h1 id="counter">叩首：0</h1>
-        <p id="status-text">音訊接引中...</p>
+        <p id="status-text">音訊加載中...</p>
 
         <div class="control-panel">
             <div class="input-group">
@@ -27,7 +43,7 @@
                 <span> BPM</span>
             </div>
             <div class="button-group">
-                <button id="start-btn" disabled>請稍候...</button>
+                <button id="start-btn" disabled>載入中...</button>
                 <button id="stop-btn">停止</button>
             </div>
             <hr style="border: 0.5px solid #444; margin: 15px 0;">
@@ -38,11 +54,12 @@
             </div>
         </div>
 
-        <div id="muyu-btn" style="cursor: pointer; -webkit-tap-highlight-color: transparent;">
+        <div id="muyu-btn" style="-webkit-tap-highlight-color: transparent;">
             <img src="muyu_image.png" alt="木魚" id="muyu-img">
             <span id="floating-text">叩首 +1</span>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
