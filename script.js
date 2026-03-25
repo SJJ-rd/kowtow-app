@@ -9,11 +9,13 @@ const STORAGE_KEYS = {
     SPEED: 'kowtow_setting_speed'
 };
 
+// 專業音效引擎初始化
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = new AudioContext();
 let muyuBuffer = null, qingBuffer = null;
 let isUnlocked = false;
 
+// 取得 HTML 元素
 const counterDisplay = document.getElementById('counter'),
       statusText = document.getElementById('status-text'),
       startBtn = document.getElementById('start-btn'),
@@ -23,7 +25,7 @@ const counterDisplay = document.getElementById('counter'),
       muyuBtn = document.getElementById('muyu-btn'),
       floatingText = document.getElementById('floating-text');
 
-// 🌟 解鎖音訊
+// 🌟 強制解鎖音訊 (手機必須點擊螢幕)
 function unlock() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const b = audioCtx.createBuffer(1, 1, 22050);
@@ -31,52 +33,70 @@ function unlock() {
     s.buffer = b; s.connect(audioCtx.destination);
     s.start(0);
     isUnlocked = true;
-    if (muyuBuffer && qingBuffer) statusText.innerText = "就緒，請按開始修行";
+    checkReadyStatus();
 }
 document.addEventListener('touchstart', unlock, { once: true });
 document.addEventListener('click', unlock, { once: true });
 
-// 🌟 分段載入：解決大檔案載入很久的問題
+// 🌟 強化載入：增加 Cache 排除與錯誤捕捉
 async function loadFile(url, name) {
     try {
-        const res = await fetch(url);
+        const res = await fetch(url, { cache: "no-store" }); // 確保不抓舊的壞檔案
+        if (!res.ok) throw new Error("找不到檔案");
         const arrayBuffer = await res.arrayBuffer();
         return await audioCtx.decodeAudioData(arrayBuffer);
     } catch (e) {
-        console.error(name + " 載入失敗");
+        console.error(name + " 載入錯誤:", e);
         return null;
     }
 }
 
+function checkReadyStatus() {
+    if (!isUnlocked) {
+        statusText.innerText = "請點擊畫面任何地方以開啟聲音";
+    } else if (muyuBuffer && qingBuffer) {
+        statusText.innerText = "就緒，請按開始修行";
+    } else {
+        statusText.innerText = "音訊解碼中，請稍候...";
+    }
+}
+
 async function init() {
-    statusText.innerText = "接引音訊中 (大檔案請稍候)...";
-    // 木魚先載，載完就能點
+    statusText.innerText = "接引音訊中 (檔案較大請稍候)...";
+    
+    // 非同步載入
     loadFile('muyu.mp3', '木魚').then(buf => {
         muyuBuffer = buf;
-        if(qingBuffer) statusText.innerText = "就緒，請按開始修行";
+        if (!buf) statusText.innerText = "木魚音檔過大或損壞，請重新整理";
+        checkReadyStatus();
     });
-    // 引磬後載
+    
     loadFile('bells.mp3', '引磬').then(buf => {
         qingBuffer = buf;
-        if(muyuBuffer) statusText.innerText = "就緒，請按開始修行";
+        checkReadyStatus();
     });
 }
 
-function play(buf, vol = 1) {
+// 播放函數
+function play(buf, vol = 1.0) {
     if (!buf || !isUnlocked) return;
-    const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
-    s.buffer = buf; g.gain.value = vol;
-    s.connect(g); g.connect(audioCtx.destination);
-    s.start(0);
+    try {
+        const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
+        s.buffer = buf; g.gain.value = vol;
+        s.connect(g); g.connect(audioCtx.destination);
+        s.start(0);
+    } catch(e) { console.error("播放出錯"); }
 }
 
-function playWait(buf, vol = 1) {
+function playWait(buf, vol = 1.0) {
     return new Promise(r => {
         play(buf, vol);
-        setTimeout(r, (buf.duration * 1000) - 450);
+        const duration = buf ? buf.duration * 1000 : 1000;
+        setTimeout(r, duration - 450);
     });
 }
 
+// 儲存邏輯
 const Storage = {
     load: function() {
         lifetimeCount = parseInt(localStorage.getItem(STORAGE_KEYS.LIFETIME)) || 0;
@@ -101,12 +121,15 @@ const Storage = {
     }
 };
 
+// 修行主循環
 async function perform() {
     if (!isRunning || isPausing) return;
     count++; Storage.save();
     counterDisplay.innerText = `叩首：${count}`;
     play(muyuBuffer);
-    floatingText.classList.remove('animate-text'); void floatingText.offsetWidth;
+    
+    floatingText.classList.remove('animate-text');
+    void floatingText.offsetWidth;
     floatingText.classList.add('animate-text');
 
     if (count >= parseInt(targetInput.value)) {
@@ -131,6 +154,7 @@ async function perform() {
 
 startBtn.onclick = async () => {
     if (!isUnlocked) unlock();
+    if (!muyuBuffer || !qingBuffer) { alert("音訊尚未載入完成，請再等幾秒"); return; }
     count = 0; isRunning = true; startBtn.disabled = true;
     statusText.innerText = "鳴磬三聲，靜心...";
     for(let i=0; i<3; i++) if(isRunning) await playWait(qingBuffer, 0.9);
@@ -142,14 +166,14 @@ startBtn.onclick = async () => {
 
 stopBtn.onclick = () => { isRunning = false; clearInterval(autoInterval); startBtn.disabled = false; statusText.innerText = "已停止"; };
 
-// 🌟 Apple 提醒：修正為標準多行格式 (解決不是每日的問題)
+// 🌟 Apple 提醒：確保換行正確
 document.getElementById('reminder-apple-btn').onclick = () => {
     const url = window.location.href;
     const now = new Date();
     const pad = n => n < 10 ? '0' + n : n;
     const d = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
 
-    const icsContent = [
+    const ics = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "BEGIN:VEVENT",
@@ -170,7 +194,7 @@ document.getElementById('reminder-apple-btn').onclick = () => {
     ].join("\r\n");
 
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([icsContent], {type:'text/calendar'}));
+    link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'}));
     link.download = 'daily.ics';
     link.click();
 };
