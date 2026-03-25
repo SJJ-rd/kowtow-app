@@ -3,6 +3,14 @@ let autoInterval = null;
 let isRunning = false;
 let isPausing = false;
 
+// 🌟 啟動專業音效引擎 (Web Audio API)
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+// 用來儲存預載入的音訊記憶體
+let muyuBuffer = null;
+let qingBuffer = null;
+
 const counterDisplay = document.getElementById('counter');
 const statusText = document.getElementById('status-text');
 const startBtn = document.getElementById('start-btn');
@@ -14,49 +22,78 @@ const testQingBtn = document.getElementById('test-qing-btn');
 const muyuBtn = document.getElementById('muyu-btn');
 const floatingText = document.getElementById('floating-text');
 
-const MUYU_FILE = 'muyu.mp3';
-const QING_FILE = 'bells.mp3'; 
+// 🌟 預先載入音訊檔案到記憶體中 (零延遲的關鍵)
+async function loadAudio() {
+    try {
+        statusText.innerText = "音訊載入中...";
+        // 同時下載木魚和引磬
+        const [muyuRes, qingRes] = await Promise.all([
+            fetch('muyu.mp3'),
+            fetch('bells.mp3')
+        ]);
+        const muyuArray = await muyuRes.arrayBuffer();
+        const qingArray = await qingRes.arrayBuffer();
+        
+        // 解碼並存入記憶體
+        muyuBuffer = await audioCtx.decodeAudioData(muyuArray);
+        qingBuffer = await audioCtx.decodeAudioData(qingArray);
+        statusText.innerText = "就緒，請按開始修行";
+    } catch (err) {
+        console.error("音訊載入失敗:", err);
+        statusText.innerText = "音訊載入失敗，請檢查網路連線";
+    }
+}
+// 網頁開啟時立即執行載入
+loadAudio();
 
-function forcePlay(fileName, vol = 1.0) {
-    const audio = new Audio(fileName);
-    audio.volume = vol;
-    audio.play().catch(err => console.error("播放失敗:", err));
-    audio.onended = () => audio.remove();
+// 🌟 從記憶體瞬間播放音效 (手機絕對不卡頓)
+function playBuffer(buffer, vol = 1.0) {
+    if (!buffer) return;
+    // 解除手機瀏覽器的靜音鎖定
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const source = audioCtx.createBufferSource();
+    const gainNode = audioCtx.createGain();
+    
+    source.buffer = buffer;
+    gainNode.gain.value = vol;
+    
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    source.start(0);
 }
 
-function playAndWait(fileName, vol = 1.0, overlapSec = 0) {
+// 🌟 專業版播放並等待 (利用精準時長計算重疊)
+function playAndWait(buffer, vol = 1.0, overlapSec = 0) {
     return new Promise((resolve) => {
-        const audio = new Audio();
-        audio.volume = vol;
+        if (!buffer) { resolve(); return; }
         
-        audio.addEventListener('loadedmetadata', () => {
-            const durationMs = audio.duration * 1000; 
-            const waitTime = Math.max(0, durationMs - (overlapSec * 1000));
-            
-            audio.play().catch(err => {
-                console.error("播放失敗:", err);
-                resolve(); 
-            });
-            
-            setTimeout(() => resolve(), waitTime);
-        });
-
-        audio.onended = () => audio.remove();
-        audio.onerror = () => resolve(); 
-        audio.src = fileName; 
+        playBuffer(buffer, vol);
+        
+        // 直接讀取記憶體中的真實時長 (毫秒)
+        const durationMs = buffer.duration * 1000; 
+        const waitTime = Math.max(0, durationMs - (overlapSec * 1000));
+        
+        setTimeout(() => resolve(), waitTime);
     });
 }
 
-testMuyuBtn.addEventListener('click', () => { forcePlay(MUYU_FILE); });
-testQingBtn.addEventListener('click', () => { forcePlay(QING_FILE); });
+// 測試按鈕事件 (加入 resume 解鎖手機聲音)
+testMuyuBtn.addEventListener('click', () => { 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    playBuffer(muyuBuffer); 
+});
+testQingBtn.addEventListener('click', () => { 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    playBuffer(qingBuffer); 
+});
 
 async function performTap() {
     if (!isRunning || isPausing) return;
     
     count++;
-    // 🌟 修改這裡：動態更新的文字改為叩首
     counterDisplay.innerText = `叩首：${count}`;
-    forcePlay(MUYU_FILE, 1.0);
+    playBuffer(muyuBuffer, 1.0);
 
     floatingText.classList.remove('animate-text');
     void floatingText.offsetWidth;
@@ -75,7 +112,7 @@ async function performTap() {
 
         if (isRunning) { 
             statusText.innerText = `已滿 ${count} 下，鳴引磬迴向...`;
-            await playAndWait(QING_FILE, 0.9, 0.2); 
+            await playAndWait(qingBuffer, 0.9, 0.2); 
         }
 
         if (isRunning) {
@@ -93,8 +130,10 @@ async function performTap() {
 async function startPractice() {
     if (isRunning) return;
     
+    // 關鍵！點擊開始時，強制喚醒手機音效引擎
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    
     count = 0;
-    // 🌟 修改這裡：重新開始時歸零的文字改為叩首
     counterDisplay.innerText = "叩首：0";
     isRunning = true;
     isPausing = false;
@@ -104,7 +143,7 @@ async function startPractice() {
 
     for (let i = 0; i < 3; i++) {
         if (!isRunning) return; 
-        await playAndWait(QING_FILE, 0.9, 0.5); 
+        await playAndWait(qingBuffer, 0.9, 0.5); 
     }
 
     if (!isRunning) return; 
@@ -135,11 +174,10 @@ async function finishPractice() {
     statusText.innerText = "目標達成，鳴引磬三聲迴向...";
 
     for (let i = 0; i < 3; i++) {
-        await playAndWait(QING_FILE, 1.0, 0.5); 
+        await playAndWait(qingBuffer, 1.0, 0.5); 
     }
 
     startBtn.disabled = false;
-    // 🌟 修改這裡：完成時的提示文字
     statusText.innerText = "儀軌圓滿，目標達成！";
 }
 
@@ -147,18 +185,20 @@ startBtn.addEventListener('click', startPractice);
 stopBtn.addEventListener('click', stopPractice);
 
 muyuBtn.addEventListener('click', () => {
+    // 關鍵！喚醒手機音效引擎
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
     if (!isRunning && !isPausing) {
         count++;
-        // 🌟 修改這裡：手動點擊更新的文字改為叩首
         counterDisplay.innerText = `叩首：${count}`;
-        forcePlay(MUYU_FILE, 1.0);
+        playBuffer(muyuBuffer, 1.0);
         
         floatingText.classList.remove('animate-text');
         void floatingText.offsetWidth;
         floatingText.classList.add('animate-text');
 
         if (count > 0 && count % 100 === 0) {
-            forcePlay(QING_FILE, 0.8);
+            playBuffer(qingBuffer, 0.8);
         }
     }
 });
