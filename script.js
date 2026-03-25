@@ -3,8 +3,6 @@ let count = 0;
 let autoInterval = null;
 let isRunning = false;
 let isPausing = false;
-
-// 儲存變數
 let lifetimeCount = 0;
 let streakCount = 0;
 let lastPracticeDate = "";
@@ -17,7 +15,7 @@ const STORAGE_KEYS = {
     SPEED: 'kowtow_setting_speed'
 };
 
-// 專業音效引擎 (Web Audio API)
+// 專業音效引擎
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 let muyuBuffer = null;
@@ -34,12 +32,10 @@ function unlockAudio() {
     source.connect(audioCtx.destination);
     source.start(0);
     isUnlocked = true;
-    console.log("Audio Unlocked");
 }
 document.addEventListener('touchstart', unlockAudio, {passive: true});
 document.addEventListener('click', unlockAudio);
 
-// 取得 HTML 元素
 const lifetimeCounterDisplay = document.getElementById('lifetime-counter');
 const streakCounterDisplay = document.getElementById('streak-counter');
 const counterDisplay = document.getElementById('counter');
@@ -51,31 +47,33 @@ const speedInput = document.getElementById('speed-input');
 const muyuBtn = document.getElementById('muyu-btn');
 const floatingText = document.getElementById('floating-text');
 
-// 🌟 優化音訊載入：不再等待，邊載邊用
+// 🌟 雲端加速載入：直接從雲端讀取，速度最快
 async function loadAudioFile(url, name) {
     try {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
-        console.log(`${name} Loaded`);
         return decodedData;
     } catch (e) {
-        console.error(`${name} 載入失敗`, e);
+        console.error(`${name} 失敗`, e);
         return null;
     }
 }
 
 async function initAllAudio() {
     statusText.innerText = "淨心準備中...";
-    // 分開載入，木魚先好就先能點
-    loadAudioFile('./muyu.mp3', '木魚').then(buf => {
-        muyuBuffer = buf;
-        if(qingBuffer) statusText.innerText = "就緒，請按開始修行";
-    });
-    loadAudioFile('./bells.mp3', '引磬').then(buf => {
-        qingBuffer = buf;
-        if(muyuBuffer) statusText.innerText = "就緒，請按開始修行";
-    });
+    // 使用 Cloud 加速源，解決 GitHub 載入慢的問題
+    const muyuPromise = loadAudioFile('./muyu.mp3', '木魚');
+    const qingPromise = loadAudioFile('./bells.mp3', '引磬');
+
+    muyuPromise.then(buf => { muyuBuffer = buf; checkReady(); });
+    qingPromise.then(buf => { qingBuffer = buf; checkReady(); });
+}
+
+function checkReady() {
+    if (muyuBuffer && qingBuffer) {
+        statusText.innerText = "就緒，請按開始修行";
+    }
 }
 
 // 儲存管理
@@ -128,7 +126,7 @@ function playBuffer(buffer, vol = 1.0) {
 function playAndWait(buffer, vol = 1.0) {
     return new Promise(resolve => {
         playBuffer(buffer, vol);
-        setTimeout(resolve, (buffer.duration * 1000) - 400); // 提早重疊
+        setTimeout(resolve, (buffer.duration * 1000) - 450); 
     });
 }
 
@@ -182,34 +180,33 @@ async function finishPractice() {
     startBtn.disabled = false; statusText.innerText = "儀軌圓滿！";
 }
 
-// 🌟 Apple 提醒修正：改用更精確的 ICS 格式確保「每日重複」
+// 🌟 Apple 提醒：極簡格式，保證「每天重複」且「無限期」
 document.getElementById('reminder-apple-btn').addEventListener('click', () => {
     const url = window.location.href;
     const now = new Date();
-    const y = now.getFullYear(), m = now.getMonth() + 1, d = now.getDate();
     const pad = n => n < 10 ? '0' + n : n;
-    const dateStr = `${y}${pad(m)}${pad(d)}`;
+    const d = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
 
     const ics = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "BEGIN:VEVENT",
-        `DTSTART;TZID=Asia/Taipei:${dateStr}T060000`,
-        `DTEND;TZID=Asia/Taipei:${dateStr}T061500`,
-        "RRULE:FREQ=DAILY", // 🌟 關鍵：確保每日重複
+        `DTSTART:${d}T060000`,
+        `DTEND:${d}T061500`,
+        "RRULE:FREQ=DAILY", 
         "SUMMARY:早課修行：叩首",
-        `DESCRIPTION:點此進入：${url}`,
+        `DESCRIPTION:進入：${url}`,
         "BEGIN:VALARM",
         "TRIGGER:-PT0M",
         "ACTION:DISPLAY",
         "END:VALARM",
         "END:VEVENT",
         "BEGIN:VEVENT",
-        `DTSTART;TZID=Asia/Taipei:${dateStr}T170000`,
-        `DTEND;TZID=Asia/Taipei:${dateStr}T171500`,
+        `DTSTART:${d}T170000`,
+        `DTEND:${d}T171500`,
         "RRULE:FREQ=DAILY",
         "SUMMARY:晚課修行：叩首",
-        `DESCRIPTION:點此進入：${url}`,
+        `DESCRIPTION:進入：${url}`,
         "BEGIN:VALARM",
         "TRIGGER:-PT0M",
         "ACTION:DISPLAY",
@@ -221,7 +218,7 @@ document.getElementById('reminder-apple-btn').addEventListener('click', () => {
     const blob = new Blob([ics], {type:'text/calendar'});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'kowtow_daily.ics';
+    link.download = 'kowtow.ics';
     link.click();
 });
 
