@@ -12,28 +12,34 @@
             <p id="streak-counter" style="font-size: 0.85rem; color: #4CAF50; font-weight: bold; margin: 0;">連續修行：0 天</p>
             <p id="lifetime-counter" style="font-size: 0.85rem; color: #bbb; margin: 0;">總叩首：0</p>
         </div>
+        
         <h1 id="counter">叩首：0</h1>
-        <p id="status-text">初始化系統中...</p>
+        <p id="status-text">道場準備中...</p>
 
         <div class="control-panel">
             <div class="input-group">
                 <label>目標次數：</label>
                 <input type="number" id="target-input" value="108" min="1">
             </div>
+            
             <div class="input-group">
                 <label>敲擊速度：</label>
                 <input type="number" id="speed-input" value="60" min="1">
                 <span> BPM</span>
             </div>
+
             <div class="button-group">
                 <button id="start-btn">開始修行</button>
                 <button id="stop-btn">停止</button>
             </div>
+
             <hr style="border: 0.5px solid #444; margin: 15px 0;">
+            
             <div class="test-group">
-                <button id="reminder-google-btn" class="test-btn" style="background: #2196F3; font-size: 11px;">Google 提醒</button>
-                <button id="reminder-apple-btn" class="test-btn" style="background: #ff9500; font-size: 11px;">Apple 提醒</button>
-                <button id="reset-lifetime-btn" class="test-btn" style="background: #a11; font-size: 11px;">重設紀錄</button>
+                <p style="font-size: 11px; color: #888; margin-bottom: 8px;">系統功能：</p>
+                <button id="reminder-google-btn" class="test-btn" style="background: #2196F3;">Google 提醒</button>
+                <button id="reminder-apple-btn" class="test-btn" style="background: #ff9500;">Apple 提醒</button>
+                <button id="reset-lifetime-btn" class="test-btn" style="background: #a11;">重設紀錄</button>
             </div>
         </div>
 
@@ -42,6 +48,7 @@
             <span id="floating-text">叩首 +1</span>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
