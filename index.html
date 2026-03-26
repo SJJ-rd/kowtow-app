@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>隨身道場 - 自定義修行版</title>
+    <title>隨身道場 - 最終精進版</title>
     <link rel="stylesheet" href="style.css">
     <style>
         #force-start-overlay {
@@ -14,12 +14,16 @@
         .unlock-btn { border: 2px solid #ffcf40; color: #ffcf40; padding: 25px 35px; border-radius: 50px; text-align: center; line-height: 1.6; }
         #timer-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 12px; margin: 10px 0; border: 1px solid #444; }
         #timer-clock { font-size: 1.8rem; color: #ff9500; font-weight: bold; font-family: monospace; letter-spacing: 2px; }
-        .goal-group { display: none; } /* 初始隱藏，由 JS 控制顯示 */
+        
+        /* 確保輸入群組的排版漂亮 */
+        .input-row { margin: 10px 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+        .input-row label { margin-right: 5px; }
+        input[type=number], select { background: #333; color: white; border: 1px solid #555; padding: 4px; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div id="force-start-overlay">
-        <div class="unlock-btn">🙏<br>進入自定義道場<br><span style="font-size:12px; opacity:0.8;">支援設定「時間」或「次數」目標</span></div>
+        <div class="unlock-btn">🙏<br>進入自定義道場<br><span style="font-size:12px; opacity:0.8;">請先點擊此處解鎖音訊</span></div>
     </div>
 
     <div class="container">
@@ -35,37 +39,38 @@
             <div id="timer-clock">00:00</div>
         </div>
 
-        <p id="status-text">請設定目標後開始</p>
+        <p id="status-text">道場就緒，請設定目標</p>
 
         <div class="control-panel">
-            <div class="input-group">
-                <label>修行模式：</label>
-                <select id="mode-select" style="background: #333; color: white; border: 1px solid #555;">
+            <div class="input-row">
+                <label>模式：</label>
+                <select id="mode-select">
                     <option value="recitation">默念模式 (5下計1)</option>
                     <option value="standard">標準模式 (1下計1)</option>
                 </select>
             </div>
 
-            <div class="input-group">
+            <div class="input-row">
                 <label>目標類型：</label>
-                <select id="goal-type" style="background: #333; color: white; border: 1px solid #555;">
-                    <option value="time">設定修持時間</option>
-                    <option value="count">設定修持次數</option>
+                <select id="goal-type">
+                    <option value="time">設定「修持時間」</option>
+                    <option value="count">設定「目標次數」</option>
                 </select>
             </div>
 
-            <div id="goal-time-group" class="input-group" style="display: block;">
+            <div id="goal-time-input" class="input-row" style="display: block;">
                 <label>修持分鐘：</label>
-                <input type="number" id="target-time" value="60" min="1" style="width: 60px;"> 分
+                <input type="number" id="target-time" value="60" min="1" style="width: 50px;">
             </div>
-            <div id="goal-count-group" class="input-group" style="display: none;">
+            <div id="goal-count-input" class="input-row" style="display: none;">
                 <label>目標進度：</label>
-                <input type="number" id="target-count" value="108" min="1" style="width: 60px;"> 次
+                <input type="number" id="target-count" value="108" min="1" style="width: 60px;">
             </div>
 
-            <div class="input-group">
-                <label>敲擊速度：</label>
-                <input type="number" id="speed-input" value="60" min="1" max="200" style="width: 50px;"> BPM
+            <div class="input-row">
+                <label>速度：</label>
+                <input type="number" id="speed-input" value="60" min="1" style="width: 45px;">
+                <span style="margin-left:5px;">BPM</span>
             </div>
 
             <div class="button-group" style="margin-top: 10px;">
@@ -75,7 +80,7 @@
         </div>
 
         <div id="muyu-btn" style="cursor: pointer; -webkit-tap-highlight-color: transparent;">
-            <img src="muyu_image.png" alt="木魚" id="muyu-img" style="width: 150px;">
+            <img src="muyu_image.png" alt="木魚" id="muyu-img" style="width: 140px;">
             <span id="floating-text">修行中</span>
         </div>
     </div>
