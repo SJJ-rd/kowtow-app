@@ -2,20 +2,33 @@
 let count = 0, subCount = 0, isRunning = false, isPausing = false;
 let lifetimeCount = 0;
 let autoInterval = null, timerInterval = null;
-let remainingSeconds = 3600;
+let secondsElapsed = 0; 
+let secondsRemaining = 0;
 
 // 音訊引擎
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = new AudioContext();
 let muyuBuffer = null, qingBuffer = null;
 
+// 元素宣告
 const statusText = document.getElementById('status-text');
 const timerClock = document.getElementById('timer-clock');
+const timerLabel = document.getElementById('timer-label');
 const counterDisplay = document.getElementById('counter');
 const startBtn = document.getElementById('start-btn');
 const muyuBtn = document.getElementById('muyu-btn');
 const overlay = document.getElementById('force-start-overlay');
 const modeSelect = document.getElementById('mode-select');
+const goalTypeSelect = document.getElementById('goal-type');
+
+// 🌟 目標類型切換邏輯
+goalTypeSelect.onchange = () => {
+    const isTime = goalTypeSelect.value === 'time';
+    document.getElementById('goal-time-group').style.display = isTime ? 'block' : 'none';
+    document.getElementById('goal-count-group').style.display = isTime ? 'none' : 'block';
+    timerClock.innerText = isTime ? "00:00" : "00:00";
+    timerLabel.innerText = isTime ? "修行倒數" : "已修持時間";
+};
 
 // 背景播放維持
 const silentAudio = new Audio();
@@ -52,7 +65,7 @@ function play(buffer) {
     s.start(0);
 }
 
-// 🌟 計數邏輯核心
+// 🌟 計數邏輯
 function handleCount() {
     const mode = modeSelect.value;
     play(muyuBuffer);
@@ -75,16 +88,21 @@ async function loop() {
         counterDisplay.innerText = `本次進度：${count}`;
         saveData();
 
-        // 🌟 模式判斷：只有標準模式滿百鳴磬
+        // 檢查次數目標
+        if (goalTypeSelect.value === 'count') {
+            const targetCount = parseInt(document.getElementById('target-count').value);
+            if (count >= targetCount) { finish(); return; }
+        }
+
+        // 標準模式滿百鳴磬
         if (modeSelect.value === 'standard' && count % 100 === 0) {
-            isPausing = true;
-            clearInterval(autoInterval);
-            statusText.innerText = `已滿 ${count} 下，鳴磬提醒...`;
+            isPausing = true; clearInterval(autoInterval);
+            statusText.innerText = `滿 ${count} 次鳴磬...`;
             play(qingBuffer);
             setTimeout(() => {
                 if (isRunning) {
                     isPausing = false;
-                    statusText.innerText = "修行進行中...";
+                    statusText.innerText = "精進中...";
                     autoInterval = setInterval(loop, 60000 / parseInt(document.getElementById('speed-input').value));
                 }
             }, 1500);
@@ -92,19 +110,33 @@ async function loop() {
     }
 }
 
-// 2. 計時模組
-function startCountdown() {
-    remainingSeconds = 3600;
+// 🌟 計時器邏輯
+function startTimer() {
+    secondsElapsed = 0;
+    const targetMin = parseInt(document.getElementById('target-time').value);
+    secondsRemaining = targetMin * 60;
+
     timerInterval = setInterval(() => {
-        remainingSeconds--;
-        const m = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
-        const s = (remainingSeconds % 60).toString().padStart(2, '0');
-        timerClock.innerText = `${m}:${s}`;
-        if (remainingSeconds <= 0) finish();
+        if (!isRunning) return;
+        
+        if (goalTypeSelect.value === 'time') {
+            // 時間模式：倒數
+            secondsRemaining--;
+            const m = Math.floor(secondsRemaining / 60).toString().padStart(2, '0');
+            const s = (secondsRemaining % 60).toString().padStart(2, '0');
+            timerClock.innerText = `${m}:${s}`;
+            if (secondsRemaining <= 0) finish();
+        } else {
+            // 次數模式：正數計時
+            secondsElapsed++;
+            const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const s = (secondsElapsed % 60).toString().padStart(2, '0');
+            timerClock.innerText = `${m}:${s}`;
+        }
     }, 1000);
 }
 
-// 3. 修行控制
+// 修行控制
 startBtn.onclick = async () => {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     count = 0; subCount = 0; isRunning = true;
@@ -113,18 +145,19 @@ startBtn.onclick = async () => {
     statusText.innerText = "鳴磬三聲，請靜心...";
     
     if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({ title: '一小時精進修行', artist: '隨身道場' });
+        navigator.mediaSession.metadata = new MediaMetadata({ title: '修行精進中', artist: '隨身道場' });
         silentAudio.play().catch(()=>{});
     }
 
+    // 啟動鳴磬
     for (let i = 0; i < 3; i++) {
         play(qingBuffer);
         await new Promise(r => setTimeout(r, 1500));
     }
 
     if (isRunning) {
-        startCountdown();
-        statusText.innerText = "一小時精進中...";
+        startTimer();
+        statusText.innerText = "精進中...";
         autoInterval = setInterval(loop, 60000 / parseInt(document.getElementById('speed-input').value));
     }
 };
@@ -132,13 +165,13 @@ startBtn.onclick = async () => {
 async function finish() {
     isRunning = false; clearInterval(autoInterval); clearInterval(timerInterval);
     silentAudio.pause();
-    statusText.innerText = "一小時圓滿，迴向中...";
+    statusText.innerText = "功德圓滿，迴向中...";
     for (let i = 0; i < 3; i++) {
         play(qingBuffer);
         await new Promise(r => setTimeout(r, 1500));
     }
     startBtn.disabled = false;
-    statusText.innerText = "修行圓滿！共計進度：" + count;
+    statusText.innerText = "修行圓滿！";
 }
 
 document.getElementById('stop-btn').onclick = () => {
@@ -154,8 +187,13 @@ muyuBtn.onclick = () => {
     if (didStep) {
         counterDisplay.innerText = `本次進度：${count}`;
         saveData();
-        // 🌟 手動同樣遵循：只有標準模式滿百鳴磬
         if (modeSelect.value === 'standard' && count % 100 === 0) play(qingBuffer);
+        
+        // 次數目標檢查
+        if (goalTypeSelect.value === 'count') {
+            const targetCount = parseInt(document.getElementById('target-count').value);
+            if (count >= targetCount) finish();
+        }
     }
     const ft = document.getElementById('floating-text');
     ft.classList.remove('animate-text'); void ft.offsetWidth; ft.classList.add('animate-text');
@@ -173,5 +211,3 @@ window.onload = () => {
     const streak = localStorage.getItem('kowtow_streak') || 0;
     document.getElementById('streak-counter').innerText = `連續修行：${streak} 天`;
 };
-
-document.getElementById('reset-btn').onclick = () => { if(confirm("確定清除紀錄？")){localStorage.clear(); location.reload();} };
