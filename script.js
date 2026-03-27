@@ -20,50 +20,59 @@ const statusText = document.getElementById('status-text'),
       modeSelect = document.getElementById('mode-select'),
       goalTypeSelect = document.getElementById('goal-type');
 
-// 🌟 核心：介面連動切換
+// 介面連動切換
 goalTypeSelect.addEventListener('change', function() {
     const isTimeMode = this.value === 'time';
     document.getElementById('goal-time-input').style.display = isTimeMode ? 'block' : 'none';
     document.getElementById('goal-count-input').style.display = isTimeMode ? 'none' : 'block';
-    
-    // 重設計時器文字提示
     timerLabel.innerText = isTimeMode ? "修行倒數" : "已修持時間";
     timerClock.innerText = isTimeMode ? document.getElementById('target-time').value + ":00" : "00:00";
 });
 
-// 背景播放 Hack
+// 背景播放維持
 const silentAudio = new Audio();
 silentAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=";
 silentAudio.loop = true;
 
-// 1. 初始化資源
+// 🌟 1. 初始化資源 (加入 ?v= 避免快取，強制抓取新引磬聲)
 async function handleEntry() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     overlay.style.display = 'none';
     statusText.innerText = "正在召喚資源...";
     
     try {
+        const timestamp = Date.now(); // 產生唯一版本號
         const [mAB, qAB] = await Promise.all([
-            fetch('muyu.mp3').then(r => r.arrayBuffer()),
-            fetch('bells.mp3').then(r => r.arrayBuffer())
+            fetch(`muyu.mp3?v=${timestamp}`).then(r => r.arrayBuffer()),
+            fetch(`bells.mp3?v=${timestamp}`).then(r => r.arrayBuffer())
         ]);
         muyuBuffer = await audioCtx.decodeAudioData(mAB);
         qingBuffer = await audioCtx.decodeAudioData(qAB);
         startBtn.disabled = false;
         startBtn.innerText = "開始修行";
         statusText.innerText = "道場就緒";
-    } catch (e) { statusText.innerText = "音訊載入失敗"; }
+    } catch (e) { statusText.innerText = "音訊載入失敗，請確認檔案"; }
 }
 overlay.addEventListener('click', handleEntry);
 
-function play(buffer) {
+function play(buffer, vol = 1.0) {
     if (!buffer || !audioCtx) return;
     const s = audioCtx.createBufferSource();
-    s.buffer = buffer; s.connect(audioCtx.destination);
+    const g = audioCtx.createGain();
+    s.buffer = buffer; g.gain.value = vol;
+    s.connect(g); g.connect(audioCtx.destination);
     s.start(0);
 }
 
-// 🌟 計數處理
+// 🌟 核心修正：將鳴磬重疊時間改為 0.1 秒 (100ms)
+function playWait(buffer) {
+    return new Promise(r => {
+        play(buffer);
+        setTimeout(r, 100); // 這裡改為 100 毫秒 = 0.1 秒
+    });
+}
+
+// 計數處理
 function handleCount() {
     play(muyuBuffer);
     if (modeSelect.value === 'recitation') {
@@ -75,25 +84,20 @@ function handleCount() {
     return false;
 }
 
-// 🌟 自動循環
+// 自動循環
 async function loop() {
     if (!isRunning || isPausing) return;
-    
     const didStep = handleCount();
     if (didStep) {
         counterDisplay.innerText = `本次進度：${count}`;
         saveData();
-
-        // 次數目標檢查
         if (goalTypeSelect.value === 'count') {
             const targetCount = parseInt(document.getElementById('target-count').value);
             if (count >= targetCount) { finish(); return; }
         }
-
-        // 標準模式滿百鳴磬
         if (modeSelect.value === 'standard' && count % 100 === 0) {
             isPausing = true; clearInterval(autoInterval);
-            statusText.innerText = `滿 ${count} 下，鳴磬提醒...`;
+            statusText.innerText = `滿 ${count} 次鳴磬...`;
             play(qingBuffer);
             setTimeout(() => {
                 if (isRunning) {
@@ -101,19 +105,17 @@ async function loop() {
                     statusText.innerText = "精進進行中...";
                     autoInterval = setInterval(loop, 60000 / parseInt(document.getElementById('speed-input').value));
                 }
-            }, 1500);
+            }, 1000);
         }
     }
 }
 
-// 🌟 計時模組
+// 計時模組
 function startTimer() {
     secondsElapsed = 0;
     secondsRemaining = parseInt(document.getElementById('target-time').value) * 60;
-
     timerInterval = setInterval(() => {
         if (!isRunning) return;
-        
         if (goalTypeSelect.value === 'time') {
             secondsRemaining--;
             const m = Math.floor(secondsRemaining / 60).toString().padStart(2, '0');
@@ -129,7 +131,7 @@ function startTimer() {
     }, 1000);
 }
 
-// 修行控制
+// 修行控制 (包含開頭鳴磬三聲，間隔 0.1 秒)
 startBtn.onclick = async () => {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     count = 0; subCount = 0; isRunning = true;
@@ -142,11 +144,10 @@ startBtn.onclick = async () => {
         silentAudio.play().catch(()=>{});
     }
 
-    // 啟動鳴磬
+    // 🌟 開頭鳴磬三聲 (重疊時間 0.1 秒)
     for (let i = 0; i < 3; i++) {
         if (!isRunning) return;
-        play(qingBuffer);
-        await new Promise(r => setTimeout(r, 1500));
+        await playWait(qingBuffer); 
     }
 
     if (isRunning) {
@@ -156,14 +157,17 @@ startBtn.onclick = async () => {
     }
 };
 
+// 圓滿結束 (包含結尾鳴磬三聲，間隔 0.1 秒)
 async function finish() {
     isRunning = false; clearInterval(autoInterval); clearInterval(timerInterval);
     silentAudio.pause();
-    statusText.innerText = "修行達成，圓滿迴向中...";
+    statusText.innerText = "儀軌達成，鳴磬圓滿...";
+    
+    // 🌟 圓滿鳴磬三聲 (重疊時間 0.1 秒)
     for (let i = 0; i < 3; i++) {
-        play(qingBuffer);
-        await new Promise(r => setTimeout(r, 1500));
+        await playWait(qingBuffer);
     }
+    
     startBtn.disabled = false;
     statusText.innerText = "儀軌圓滿！";
 }
@@ -200,3 +204,5 @@ window.onload = () => {
     lifetimeCount = parseInt(localStorage.getItem('kowtow_total')) || 0;
     document.getElementById('lifetime-counter').innerText = `累計進度：${lifetimeCount.toLocaleString()}`;
 };
+
+document.getElementById('reset-btn').onclick = () => { if(confirm("確定重設紀錄？")){localStorage.clear(); location.reload();} };
