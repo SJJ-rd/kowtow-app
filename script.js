@@ -11,6 +11,7 @@ const timerClock = document.getElementById('timer-clock'),
       timerLabel = document.getElementById('timer-label'),
       counterDisplay = document.getElementById('counter'),
       startBtn = document.getElementById('start-btn'),
+      stopBtn = document.getElementById('stop-btn'),
       muyuBtn = document.getElementById('muyu-btn'),
       qingBtn = document.getElementById('qing-btn'),
       overlay = document.getElementById('force-start-overlay'),
@@ -42,7 +43,7 @@ async function handleEntry() {
         muyuBuffer = await audioCtx.decodeAudioData(mAB);
         qingBuffer = await audioCtx.decodeAudioData(qAB);
         startBtn.disabled = false;
-    } catch (e) { alert("音訊載入失敗"); }
+    } catch (e) { alert("資源載入中..."); }
 }
 overlay.addEventListener('click', handleEntry);
 
@@ -57,11 +58,11 @@ function play(buffer, vol = 1.0) {
     source.start(0);
 }
 
-// 🌟 核心參數：3.0 秒餘音銜接
+// 🌟 核心：3s 餘音重疊
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
-        const overlapSeconds = 3.0; 
+        const overlapSeconds = 4.0; 
         const delay = (buffer.duration > overlapSeconds) ? (buffer.duration - overlapSeconds) * 1000 : 100;
         setTimeout(resolve, delay);
     });
@@ -96,7 +97,7 @@ function scheduleNextTap() {
     if (!isRunning || isPausing) return;
     const bpm = parseInt(speedInput.value) || 60;
     const interval = 60000 / bpm;
-    autoTimer = setTimeout(async () => {
+    autoTimer = setTimeout(() => {
         const result = handleCount('auto');
         if (goalTypeSelect.value === 'count' && count >= parseInt(document.getElementById('target-count').value)) {
             finish(); return;
@@ -139,7 +140,7 @@ async function finish() {
     startBtn.disabled = false; silentAudio.pause();
 }
 
-document.getElementById('stop-btn').onclick = () => {
+stopBtn.onclick = () => {
     isRunning = false; isPausing = false; clearTimeout(autoTimer); clearInterval(timerInterval);
     startBtn.disabled = false; silentAudio.pause();
 };
