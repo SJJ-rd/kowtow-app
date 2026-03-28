@@ -72,7 +72,7 @@ function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
         // 當音檔播到剩下 0.8 秒時，就觸發 Promise 讓下一聲接上
-        const delay = (buffer.duration > 0.8) ? (buffer.duration - 0.8) * 1000 : 100;
+        const delay = (buffer.duration > 1.2) ? (buffer.duration - 1.2) * 1000 : 100;
         setTimeout(resolve, delay);
     });
 }
