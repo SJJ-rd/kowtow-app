@@ -1,17 +1,13 @@
-// --- 基礎變數 ---
 let count = 0, subCount = 0, isRunning = false, isPausing = false;
 let lifetimeCount = 0;
 let autoTimer = null, timerInterval = null;
 let secondsRemaining = 0, secondsElapsed = 0;
 
-// Web Audio 引擎
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = new AudioContext();
 let muyuBuffer = null, qingBuffer = null;
 
-// 元素宣告
-const statusText = document.getElementById('status-text'),
-      timerClock = document.getElementById('timer-clock'),
+const timerClock = document.getElementById('timer-clock'),
       timerLabel = document.getElementById('timer-label'),
       counterDisplay = document.getElementById('counter'),
       startBtn = document.getElementById('start-btn'),
@@ -22,7 +18,6 @@ const statusText = document.getElementById('status-text'),
       goalTypeSelect = document.getElementById('goal-type'),
       speedInput = document.getElementById('speed-input');
 
-// 目標類型切換
 goalTypeSelect.addEventListener('change', function() {
     const isTime = this.value === 'time';
     document.getElementById('goal-time-input').style.display = isTime ? 'block' : 'none';
@@ -31,16 +26,13 @@ goalTypeSelect.addEventListener('change', function() {
     timerClock.innerText = isTime ? document.getElementById('target-time').value + ":00" : "00:00";
 });
 
-// 背景播放維持
 const silentAudio = new Audio();
 silentAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=";
 silentAudio.loop = true;
 
-// 1. 初始化資源
 async function handleEntry() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     overlay.style.display = 'none';
-    statusText.innerText = "正在召喚資源...";
     try {
         const ver = Date.now();
         const [mAB, qAB] = await Promise.all([
@@ -50,9 +42,7 @@ async function handleEntry() {
         muyuBuffer = await audioCtx.decodeAudioData(mAB);
         qingBuffer = await audioCtx.decodeAudioData(qAB);
         startBtn.disabled = false;
-        startBtn.innerText = "開始修行";
-        statusText.innerText = "道場就緒";
-    } catch (e) { statusText.innerText = "音訊載入失敗"; }
+    } catch (e) { alert("音訊載入失敗"); }
 }
 overlay.addEventListener('click', handleEntry);
 
@@ -67,22 +57,19 @@ function play(buffer, vol = 1.0) {
     source.start(0);
 }
 
-// 🌟 參數調整位置：3.0 為餘音重疊秒數 (3s)
+// 🌟 核心參數：3.0 秒餘音銜接
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
-        const overlapSeconds = 3.0; // <--- 這裡已改為 3.0 秒
-        // 計算延遲：如果音檔長度大於 3 秒，則在結束前 3 秒觸發下一聲；否則設為極短延遲
+        const overlapSeconds = 3.0; 
         const delay = (buffer.duration > overlapSeconds) ? (buffer.duration - overlapSeconds) * 1000 : 100;
         setTimeout(resolve, delay);
     });
 }
 
-// 2. 修行核心計數邏輯
 function handleCount(source = 'auto') {
     const mode = modeSelect.value;
     play(muyuBuffer);
-    
     let incremented = false;
     if (mode === 'recitation') {
         subCount++;
@@ -90,37 +77,25 @@ function handleCount(source = 'auto') {
     } else {
         count++; incremented = true;
     }
-
     if (incremented) {
         counterDisplay.innerText = `本次進度：${count}`;
         saveData();
         if (mode === 'standard' && count % 100 === 0) {
             if (source === 'auto') {
                 isPausing = true;
-                statusText.innerText = `滿 ${count} 下，鳴磬提醒...`;
                 play(qingBuffer);
-                setTimeout(() => {
-                    if (isRunning) {
-                        isPausing = false;
-                        statusText.innerText = "修行進行中...";
-                        scheduleNextTap();
-                    }
-                }, 1500);
+                setTimeout(() => { if (isRunning) { isPausing = false; scheduleNextTap(); } }, 1500);
                 return 'paused'; 
-            } else {
-                play(qingBuffer);
-            }
+            } else { play(qingBuffer); }
         }
     }
     return incremented;
 }
 
-// 自動敲擊排程
 function scheduleNextTap() {
     if (!isRunning || isPausing) return;
     const bpm = parseInt(speedInput.value) || 60;
     const interval = 60000 / bpm;
-
     autoTimer = setTimeout(async () => {
         const result = handleCount('auto');
         if (goalTypeSelect.value === 'count' && count >= parseInt(document.getElementById('target-count').value)) {
@@ -130,7 +105,6 @@ function scheduleNextTap() {
     }, interval);
 }
 
-// 3. 計時器與控制
 function startTimer() {
     secondsElapsed = 0;
     secondsRemaining = parseInt(document.getElementById('target-time').value) * 60;
@@ -154,41 +128,22 @@ function startTimer() {
 startBtn.onclick = async () => {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     count = 0; subCount = 0; isRunning = true; startBtn.disabled = true;
-    statusText.innerText = "儀軌開始，鳴磬三聲...";
     silentAudio.play().catch(()=>{});
-    
-    // 🌟 這裡會執行 3.0 秒的高密度重疊鳴磬
-    for (let i = 0; i < 3; i++) {
-        if(!isRunning) return;
-        await playWait(qingBuffer);
-    }
-    
-    if (isRunning) {
-        startTimer();
-        statusText.innerText = "修行進行中...";
-        scheduleNextTap();
-    }
+    for (let i = 0; i < 3; i++) { if(!isRunning) return; await playWait(qingBuffer); }
+    if (isRunning) { startTimer(); scheduleNextTap(); }
 };
 
 async function finish() {
-    isRunning = false; 
-    clearTimeout(autoTimer);
-    clearInterval(timerInterval);
-    statusText.innerText = "目標達成，圓滿迴向中...";
-    // 🌟 結尾三聲同樣重疊 3.0 秒
+    isRunning = false; clearTimeout(autoTimer); clearInterval(timerInterval);
     for (let i = 0; i < 3; i++) { await playWait(qingBuffer); }
     startBtn.disabled = false; silentAudio.pause();
-    statusText.innerText = "儀軌圓滿！";
 }
 
 document.getElementById('stop-btn').onclick = () => {
-    isRunning = false; isPausing = false;
-    clearTimeout(autoTimer); clearInterval(timerInterval);
+    isRunning = false; isPausing = false; clearTimeout(autoTimer); clearInterval(timerInterval);
     startBtn.disabled = false; silentAudio.pause();
-    statusText.innerText = "修行已停止";
 };
 
-// 手動操作
 muyuBtn.onclick = () => {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     handleCount('manual');
@@ -214,5 +169,3 @@ window.onload = () => {
     lifetimeCount = parseInt(localStorage.getItem('kowtow_total')) || 0;
     document.getElementById('lifetime-counter').innerText = `累計進度：${lifetimeCount.toLocaleString()}`;
 };
-
-document.getElementById('reset-btn').onclick = () => { if(confirm("確定重設紀錄？")){localStorage.clear(); location.reload();} };
