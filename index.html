@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>隨身道場 - 圓滿自定義版</title>
+    <title>隨身道場 - 最終圓滿版</title>
     <link rel="stylesheet" href="style.css">
     <style>
         #force-start-overlay {
@@ -36,11 +36,26 @@
         #timer-clock { font-size: 1.8rem; color: #ff9500; font-weight: bold; font-family: monospace; letter-spacing: 2px; }
         .input-row { margin: 8px 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
         select, input { background: #333; color: white; border: 1px solid #555; padding: 4px; border-radius: 4px; margin: 0 5px; }
+
+        /* 🌟 按鈕並排樣式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .button-group button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="force-start-overlay">
-        <div class="unlock-btn">🙏<br>進入道場修行<br><span style="font-size:12px; opacity:0.8;">點擊解鎖音訊並開始設定</span></div>
+        <div class="unlock-btn">🙏<br>進入道場修行<br><span style="font-size:12px; opacity:0.8;">請先點擊此處解鎖音訊</span></div>
     </div>
 
     <div class="container">
@@ -71,22 +86,22 @@
             </div>
 
             <div id="goal-time-input" class="input-row" style="display: block;">
-                <label>修持時間：</label>
-                <input type="number" id="target-time" value="60" style="width:50px;"> 分鐘
+                <label>修持分鐘：</label>
+                <input type="number" id="target-time" value="60" style="width:50px;">
             </div>
             <div id="goal-count-input" class="input-row" style="display: none;">
                 <label>目標進度：</label>
-                <input type="number" id="target-count" value="108" style="width:60px;"> 次數
+                <input type="number" id="target-count" value="108" style="width:60px;">
             </div>
 
             <div class="input-row">
                 <label>敲擊速度：</label>
-                <input type="number" id="speed-input" value="60" min="1" max="200" style="width:50px;">
-                <span style="margin-left:2px;">BPM</span>
+                <input type="number" id="speed-input" value="60" min="1" max="200" style="width:50px;"> BPM
             </div>
 
-            <div class="button-group" style="margin-top: 10px;">
-                <button id="start-btn" disabled style="width: 100%; background: #4CAF50; color: white; padding: 10px; border-radius: 8px; font-weight: bold;">開始修行儀軌</button>
+            <div class="button-group">
+                <button id="start-btn" disabled style="background: #4CAF50; color: white;">開始修行</button>
+                <button id="stop-btn" style="background: #f44336; color: white;">停止</button>
             </div>
         </div>
 
