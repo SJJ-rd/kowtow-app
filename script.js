@@ -33,7 +33,7 @@ const silentAudio = new Audio();
 silentAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=";
 silentAudio.loop = true;
 
-// 1. 初始化資源 (加入版本號確保更新)
+// 1. 初始化資源
 async function handleEntry() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     overlay.style.display = 'none';
@@ -67,13 +67,12 @@ function play(buffer, vol = 1.0) {
     source.start(0);
 }
 
-// 🌟 核心修正：自動計算長度，並在「尾音剩 0.1 秒」時銜接下一聲
+// 🌟 核心修正：將重疊時間設為 0.8 秒，讓餘音銜接更厚實
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
-        // buffer.duration 是音檔的總秒數
-        // 我們將等待時間設為 (總長度 - 0.1秒)
-        const delay = (buffer.duration > 0.1) ? (buffer.duration - 0.1) * 1000 : 100;
+        // 當音檔播到剩下 0.8 秒時，就觸發 Promise 讓下一聲接上
+        const delay = (buffer.duration > 0.8) ? (buffer.duration - 0.8) * 1000 : 100;
         setTimeout(resolve, delay);
     });
 }
@@ -103,13 +102,11 @@ async function loop() {
             if (count >= targetCount) { finish(); return; }
         }
 
-        // 標準模式滿百鳴磬
         if (modeSelect.value === 'standard' && count % 100 === 0) {
             isPausing = true; 
             clearInterval(autoInterval);
             statusText.innerText = `已滿 ${count} 下，鳴磬提醒...`;
             play(qingBuffer);
-            // 滿百鳴磬後暫停 1.5 秒再繼續敲木魚
             setTimeout(() => {
                 if (isRunning) {
                     isPausing = false;
@@ -142,20 +139,20 @@ function startTimer() {
     }, 1000);
 }
 
-// 開始：鳴磬三聲 (尾音銜接版)
+// 開始儀軌：0.8秒餘音銜接
 startBtn.onclick = async () => {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     count = 0; subCount = 0; isRunning = true;
     startBtn.disabled = true;
     counterDisplay.innerText = "本次進度：0";
-    statusText.innerText = "鳴磬三聲，靜心...";
+    statusText.innerText = "鳴磬三聲，請靜心...";
     
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({ title: '精進修行中', artist: '隨身道場' });
         silentAudio.play().catch(()=>{});
     }
 
-    // 🌟 一聲接著一聲，疊在尾音處
+    // 🌟 一聲接一聲，尾音重疊 0.8 秒
     for (let i = 0; i < 3; i++) {
         if (!isRunning) return;
         await playWait(qingBuffer);
@@ -168,13 +165,13 @@ startBtn.onclick = async () => {
     }
 };
 
-// 圓滿：鳴磬三聲 (尾音銜接版)
+// 圓滿儀軌：0.8秒餘音銜接
 async function finish() {
     isRunning = false; clearInterval(autoInterval); clearInterval(timerInterval);
     silentAudio.pause();
     statusText.innerText = "儀軌達成，鳴磬圓滿...";
     
-    // 🌟 一聲接著一聲，疊在尾音處
+    // 🌟 一聲接一聲，尾音重疊 0.8 秒
     for (let i = 0; i < 3; i++) {
         await playWait(qingBuffer);
     }
