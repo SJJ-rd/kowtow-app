@@ -55,11 +55,11 @@ function play(buffer) {
     s.start(0);
 }
 
-// 🌟 核心：餘音銜接 (調整為 0.8s)
+// 🌟 核心：餘音銜接 (調整為 2.0s)
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
-        const delay = (buffer.duration > 0.8) ? (buffer.duration - 0.8) * 1000 : 100;
+        const delay = (buffer.duration >2.0) ? (buffer.duration -2.0) * 1000 : 100;
         setTimeout(resolve, delay);
     });
 }
