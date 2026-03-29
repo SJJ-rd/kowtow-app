@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>隨身道場 - 最終圓滿版</title>
+    <title>隨身道場 - 千叩精進版</title>
     <link rel="stylesheet" href="style.css">
     <style>
         #force-start-overlay {
@@ -13,7 +13,6 @@
         }
         .unlock-btn { border: 2px solid #ffcf40; color: #ffcf40; padding: 25px 35px; border-radius: 50px; text-align: center; line-height: 1.6; }
         
-        /* 樂器並排區 */
         .instruments-area {
             display: flex; justify-content: center; align-items: flex-end;
             gap: 25px; margin-top: 15px;
@@ -37,19 +36,22 @@
         .input-row { margin: 8px 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
         select, input { background: #333; color: white; border: 1px solid #555; padding: 4px; border-radius: 4px; margin: 0 5px; }
 
-        /* 🌟 按鈕並排樣式 */
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .button-group button {
-            flex: 1;
-            padding: 10px;
+        .button-group { display: flex; gap: 8px; margin-top: 10px; }
+        .button-group button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+        
+        /* 一鍵千叩金色按鈕 */
+        #thousand-btn {
+            background: linear-gradient(45deg, #d4af37, #f9d976);
+            color: #4a3b00;
+            width: 100%;
+            margin-top: 8px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+            font-size: 1.1rem;
+            padding: 12px;
             border-radius: 8px;
-            font-weight: bold;
             border: none;
             cursor: pointer;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -103,6 +105,7 @@
                 <button id="start-btn" disabled style="background: #4CAF50; color: white;">開始修行</button>
                 <button id="stop-btn" style="background: #f44336; color: white;">停止</button>
             </div>
+            <button id="thousand-btn" disabled>一鍵千叩 (1000次 / 100 BPM)</button>
         </div>
 
         <div class="instruments-area">
