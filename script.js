@@ -12,6 +12,7 @@ const timerClock = document.getElementById('timer-clock'),
       counterDisplay = document.getElementById('counter'),
       startBtn = document.getElementById('start-btn'),
       stopBtn = document.getElementById('stop-btn'),
+      thousandBtn = document.getElementById('thousand-btn'),
       muyuBtn = document.getElementById('muyu-btn'),
       qingBtn = document.getElementById('qing-btn'),
       overlay = document.getElementById('force-start-overlay'),
@@ -19,6 +20,7 @@ const timerClock = document.getElementById('timer-clock'),
       goalTypeSelect = document.getElementById('goal-type'),
       speedInput = document.getElementById('speed-input');
 
+// 目標顯示連動
 goalTypeSelect.addEventListener('change', function() {
     const isTime = this.value === 'time';
     document.getElementById('goal-time-input').style.display = isTime ? 'block' : 'none';
@@ -31,6 +33,7 @@ const silentAudio = new Audio();
 silentAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=";
 silentAudio.loop = true;
 
+// 初始化與載入
 async function handleEntry() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     overlay.style.display = 'none';
@@ -43,7 +46,8 @@ async function handleEntry() {
         muyuBuffer = await audioCtx.decodeAudioData(mAB);
         qingBuffer = await audioCtx.decodeAudioData(qAB);
         startBtn.disabled = false;
-    } catch (e) { alert("資源載入中..."); }
+        thousandBtn.disabled = false;
+    } catch (e) { console.log("載入中..."); }
 }
 overlay.addEventListener('click', handleEntry);
 
@@ -58,11 +62,11 @@ function play(buffer, vol = 1.0) {
     source.start(0);
 }
 
-// 🌟 核心：3s 餘音重疊
+// 🌟 3秒餘音重疊
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
-        const overlapSeconds = 4.0; 
+        const overlapSeconds = 3.0; 
         const delay = (buffer.duration > overlapSeconds) ? (buffer.duration - overlapSeconds) * 1000 : 100;
         setTimeout(resolve, delay);
     });
@@ -99,9 +103,8 @@ function scheduleNextTap() {
     const interval = 60000 / bpm;
     autoTimer = setTimeout(() => {
         const result = handleCount('auto');
-        if (goalTypeSelect.value === 'count' && count >= parseInt(document.getElementById('target-count').value)) {
-            finish(); return;
-        }
+        let target = (goalTypeSelect.value === 'count') ? parseInt(document.getElementById('target-count').value) : 0;
+        if (target > 0 && count >= target) { finish(); return; }
         if (result !== 'paused' && isRunning) scheduleNextTap();
     }, interval);
 }
@@ -126,23 +129,43 @@ function startTimer() {
     }, 1000);
 }
 
-startBtn.onclick = async () => {
+// 啟動修行主函數
+async function startPractice() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
-    count = 0; subCount = 0; isRunning = true; startBtn.disabled = true;
+    count = 0; subCount = 0; isRunning = true; 
+    startBtn.disabled = true; thousandBtn.disabled = true;
     silentAudio.play().catch(()=>{});
     for (let i = 0; i < 3; i++) { if(!isRunning) return; await playWait(qingBuffer); }
     if (isRunning) { startTimer(); scheduleNextTap(); }
+}
+
+startBtn.onclick = startPractice;
+
+// 🌟 一鍵千叩模式：自動設定 1000次 / 100 BPM / 標準模式
+thousandBtn.onclick = () => {
+    goalTypeSelect.value = 'count';
+    document.getElementById('target-count').value = 1000;
+    speedInput.value = 100; // <--- 這裡設為 100 BPM
+    modeSelect.value = 'standard';
+    
+    // UI 更新
+    document.getElementById('goal-time-input').style.display = 'none';
+    document.getElementById('goal-count-input').style.display = 'block';
+    timerLabel.innerText = "已修持時間";
+    timerClock.innerText = "00:00";
+    
+    startPractice();
 };
 
 async function finish() {
     isRunning = false; clearTimeout(autoTimer); clearInterval(timerInterval);
     for (let i = 0; i < 3; i++) { await playWait(qingBuffer); }
-    startBtn.disabled = false; silentAudio.pause();
+    startBtn.disabled = false; thousandBtn.disabled = false; silentAudio.pause();
 }
 
 stopBtn.onclick = () => {
     isRunning = false; isPausing = false; clearTimeout(autoTimer); clearInterval(timerInterval);
-    startBtn.disabled = false; silentAudio.pause();
+    startBtn.disabled = false; thousandBtn.disabled = false; silentAudio.pause();
 };
 
 muyuBtn.onclick = () => {
@@ -150,7 +173,6 @@ muyuBtn.onclick = () => {
     handleCount('manual');
     const ft = document.getElementById('float-muyu');
     ft.classList.remove('animate-up'); void ft.offsetWidth; ft.classList.add('animate-up');
-    if (goalTypeSelect.value === 'count' && count >= parseInt(document.getElementById('target-count').value)) finish();
 };
 
 qingBtn.onclick = () => {
