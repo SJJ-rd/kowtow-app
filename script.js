@@ -13,7 +13,7 @@ const timerClock = document.getElementById('timer-clock'),
       startBtn = document.getElementById('start-btn'),
       stopBtn = document.getElementById('stop-btn'),
       thousandBtn = document.getElementById('thousand-btn'),
-      guianBtn = document.getElementById('guian-btn'), // 🌟
+      guianBtn = document.getElementById('guian-btn'),
       muyuBtn = document.getElementById('muyu-btn'),
       qingBtn = document.getElementById('qing-btn'),
       overlay = document.getElementById('force-start-overlay'),
@@ -46,8 +46,8 @@ async function handleEntry() {
         qingBuffer = await audioCtx.decodeAudioData(qAB);
         startBtn.disabled = false;
         thousandBtn.disabled = false;
-        guianBtn.disabled = false; // 🌟
-    } catch (e) { console.log("資源載入中..."); }
+        guianBtn.disabled = false;
+    } catch (e) { alert("資源載入中..."); }
 }
 overlay.addEventListener('click', handleEntry);
 
@@ -60,7 +60,7 @@ function play(buffer, vol = 1.0) {
     s.start(0);
 }
 
-// 🌟 3秒餘音重疊
+// 餘音銜接 (3秒)
 function playWait(buffer) {
     return new Promise(resolve => {
         play(buffer);
@@ -136,44 +136,31 @@ async function startPractice() {
 startBtn.onclick = startPractice;
 
 thousandBtn.onclick = () => {
-    goalTypeSelect.value = 'count';
-    document.getElementById('target-count').value = 1000;
-    speedInput.value = 100;
-    modeSelect.value = 'standard';
-    updateUIForAuto();
-    startPractice();
+    goalTypeSelect.value = 'count'; document.getElementById('target-count').value = 1000; speedInput.value = 100; modeSelect.value = 'standard';
+    updateUIForAuto(); startPractice();
 };
 
-// 🌟 一鍵跪安模式邏輯
 guianBtn.onclick = () => {
-    goalTypeSelect.value = 'count';
-    document.getElementById('target-count').value = 10; // 跪安 10 次
-    speedInput.value = 60; // 60 BPM (一秒一下)
-    modeSelect.value = 'recitation'; // 5:1 模式
-    
-    updateUIForAuto();
-    startPractice();
+    goalTypeSelect.value = 'count'; document.getElementById('target-count').value = 10; speedInput.value = 60; modeSelect.value = 'recitation';
+    updateUIForAuto(); startPractice();
 };
 
 function updateUIForAuto() {
     const isTime = goalTypeSelect.value === 'time';
     document.getElementById('goal-time-input').style.display = isTime ? 'block' : 'none';
     document.getElementById('goal-count-input').style.display = isTime ? 'none' : 'block';
-    timerLabel.innerText = "已修持時間";
-    timerClock.innerText = "00:00";
+    timerLabel.innerText = "已修持時間"; timerClock.innerText = "00:00";
 }
 
 async function finish() {
     isRunning = false; clearTimeout(autoTimer); clearInterval(timerInterval);
     for (let i = 0; i < 3; i++) { await playWait(qingBuffer); }
-    startBtn.disabled = false; thousandBtn.disabled = false; guianBtn.disabled = false;
-    silentAudio.pause();
+    startBtn.disabled = false; thousandBtn.disabled = false; guianBtn.disabled = false; silentAudio.pause();
 }
 
 stopBtn.onclick = () => {
     isRunning = false; isPausing = false; clearTimeout(autoTimer); clearInterval(timerInterval);
-    startBtn.disabled = false; thousandBtn.disabled = false; guianBtn.disabled = false;
-    silentAudio.pause();
+    startBtn.disabled = false; thousandBtn.disabled = false; guianBtn.disabled = false; silentAudio.pause();
 };
 
 muyuBtn.onclick = () => {
